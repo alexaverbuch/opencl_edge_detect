@@ -24,12 +24,18 @@ typedef union my_uint4 { cl_uint u32[4]; } my_uint4;
 typedef union my_uint2 { cl_uint u32[2]; } my_uint2;
 
 /*** GLOBALS ***/
-const bool 		PROFILE 		= true;
-const cl_uint 	KERNEL_COUNT 	= 16;
+const bool 		PROFILE 		= false;
+
+const cl_uint ALLOC_TILE = 0;
+const cl_uint ALLOC_HORZ = 1;
+const cl_uint ALLOC_VERT = 2;
+
 const cl_uint   MASK_WIDTH = 3;        	/**< mask dimensions */
 const cl_uint   MASK_HEIGHT = 3;       	/**< mask dimensions */
 
 streamsdk::SDKCommon sampleCommon;
+
+int 		runTimerKey;
 
 cl_double    totalKernelTime;   /**< Time for kernel execution */
 cl_double    totalProgramTime;  /**< Time for program execution */
@@ -80,13 +86,12 @@ cl_kernel  kernel;
 void cvDisplay(IplImage* image, char windowName[], int x=0, int y=0);
 
 my_uint4 *cvImageToClArray(IplImage* raw);
-
 IplImage* clArrayToCvImage(cl_uint* output, int width, int height);
+void cvMatToCvImage(IplImage* cvImg,CvMat* cvMat);
 
 // OpenCV related funs
-int cvDoFindEdges(void);
-IplImage* cvGenerateIntensityImage(IplImage* raw);
-IplImage* cvGenerateSobelImage(IplImage* intensity);
+void cvGenerateIntensityImage(IplImage* cvImgRaw,CvMat* cvMatIntensity);
+void cvGenerateSobelImage(CvMat* cvMatIntensity,CvMat* cvMatSobel);
 
 // OpenCL related funs
 void clInitialize(void);

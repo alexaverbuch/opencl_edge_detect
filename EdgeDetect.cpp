@@ -1,9 +1,6 @@
 #include "EdgeDetect.hpp"
 #include <malloc.h>
 
-/////////////////////////////////////////////////////////////////
-// Util Methods
-/////////////////////////////////////////////////////////////////
 void cvDisplay(IplImage* image, char windowName[], int x, int y)
 {
 	CvSize imageSize = cvGetSize(image);
@@ -11,50 +8,10 @@ void cvDisplay(IplImage* image, char windowName[], int x, int y)
 	cvResizeWindow(windowName, imageSize.width, imageSize.height);
 	cvMoveWindow(windowName, x, y);
 	cvShowImage(windowName,image);
-
-	cvSaveImage("test.bmp",(CvArr*)image);
-
 	cvWaitKey(0);
 	cvDestroyAllWindows();
-	cvReleaseImage(&image);
 }
 
-//cl_uint *cvImageToClArray(IplImage* raw)
-my_uint4 *clTestArray(int dimension)
-{
-	int width = dimension;
-	int height = dimension;
-
-	my_uint4 *testArray = (my_uint4*)malloc(width * height * sizeof(my_uint4));
-
-	for (int y=0; y<height; y++)
-	{
-		for (int x=0; x<width; x++)
-		{
-			int index = (y*width) + x;
-
-			if ( y < (dimension/2) )
-			{
-				testArray[index].u32[0] = (cl_uint)0; 	//B
-				testArray[index].u32[1] = (cl_uint)0; 	//G
-				testArray[index].u32[2] = (cl_uint)0; 	//R
-				testArray[index].u32[3] = (cl_uint)0;	//A
-			}
-			else
-			{
-				testArray[index].u32[0] = (cl_uint)255; //B
-				testArray[index].u32[1] = (cl_uint)255;	//G
-				testArray[index].u32[2] = (cl_uint)255;	//R
-				testArray[index].u32[3] = (cl_uint)0;	//A
-			}
-
-		}
-	}
-
-	return testArray;
-}
-
-//cl_uint *cvImageToClArray(IplImage* raw)
 my_uint4 *cvImageToClArray(IplImage* raw)
 {
 	int width = raw->width;
@@ -64,7 +21,6 @@ my_uint4 *cvImageToClArray(IplImage* raw)
 
 	for (int y=0; y<height; y++)
 	{
-		//std::cout << "\n";
 		for (int x=0; x<width; x++)
 		{
 			CvScalar colourValue = cvGet2D(raw,y,x);
@@ -75,8 +31,6 @@ my_uint4 *cvImageToClArray(IplImage* raw)
 			imageArray[index].u32[1] = (cl_uint)(colourValue.val[1]); 	//G
 			imageArray[index].u32[2] = (cl_uint)(colourValue.val[2]); 	//R
 			imageArray[index].u32[3] = (cl_uint)(0); 					//A
-
-			//std::cout << "[" << index << "-" << imageArray[index].u32[0] << "]";
 		}
 	}
 
@@ -92,18 +46,14 @@ IplImage* clArrayToCvImage(cl_uint* output, int resultWidth, int resultHeight)
 
 	IplImage* resultImg = cvCreateImage(size,IPL_DEPTH_8U,1);
 
-	//std::cout << "\noutput.width=" << resultWidth << ", output.height=" << resultHeight << "\n";
-
 	//generate intensity image
 	for (int y=0; y<resultHeight; y++)
 	{
-		//std::cout << "\n";
 		for (int x=0; x<resultWidth; x++)
 		{
 			CvScalar colourSelect;
 
 			int index = (y*resultWidth) + x;
-			//std::cout << "[" << index << "-" << output[index] << "]";
 
 			colourSelect.val[0] = output[index];
 
@@ -114,40 +64,16 @@ IplImage* clArrayToCvImage(cl_uint* output, int resultWidth, int resultHeight)
 	return resultImg;
 }
 
-//cl_uint* initIntermediateClArray(my_uint2* intermediateDim, IplImage* raw)
-//{
-//    float	tempWidth 	= raw->width;
-//    float	tempHeight 	= raw->height;
-//    int		tempKernelCount = KERNEL_COUNT;
-//    int		baseX = 0;
-//    int		baseY = 0;
-//    bool 	powerOf4 	= ( (int)log2(tempKernelCount) % 2) == 0;
-//
-//    if (!powerOf4)
-//    {
-//    	if (tempWidth > tempHeight)
-//    	{
-//    		tempWidth		= ceil( (float)(width) / 2 );
-//	    	tempHeight		= height;
-//    	}
-//    	else
-//    	{
-//	    	tempWidth		= width;
-//    		tempHeight		= ceil( (float)(height) / 2 );
-//    	}
-//
-//    	tempKernelCount = tempKernelCount / 2;
-//    }
-//
-//    (*intermediateDim).u32[0] = ceil( tempWidth /  (float)(sqrt(tempKernelCount)) ) + 1;
-//    (*intermediateDim).u32[1] = ceil( tempHeight / (float)(sqrt(tempKernelCount)) ) + 1;
-//
-//    printf("\nintermediateDim.x = %d\n " , (*intermediateDim).u32[0]);
-//    printf("\nintermediateDim.y = %d\n " , (*intermediateDim).u32[1]);
-//
-//    cl_uint	*intermediate = (cl_uint*)malloc((*intermediateDim).u32[0] * (*intermediateDim).u32[1] * sizeof(cl_uint));
-//    return intermediate;
-//}
+void cvMatToCvImage(IplImage* cvImg,CvMat* cvMat)
+{
+	for (int y=0; y<cvMat->height; y++)
+		for (int x=0; x<cvMat->width; x++)
+		{
+			CvScalar colourSelect;
+			colourSelect.val[0] = cvmGet(cvMat,y,x);
+			cvSet2D(cvImg,y,x,colourSelect);
+		}
+}
 
 // Converts the contents of a file into a string
 std::string convertToString(const char *filename)
@@ -183,163 +109,61 @@ std::string convertToString(const char *filename)
 	return NULL;
 }
 
-/////////////////////////////////////////////////////////////////
-// Serial (OpenCV) Methods
-/////////////////////////////////////////////////////////////////
-int cvDoFindEdges(IplImage*	cvImg)
-{
-	//gray scale representation of raw image
-	IplImage*	cvImgIntensity = cvGenerateIntensityImage(cvImg);
-
-	//resultant image after Sobel operator applied to raw image
-	IplImage*	cvImgSobel = cvGenerateSobelImage(cvImgIntensity);
-
-//	cvDisplay(cvImg,"raw",0,0);
-//	cvDisplay(cvImgIntensity,"intensity",0,0);
-	cvDisplay(cvImgSobel,"imgSobel",0,0);
-
-	cvWaitKey(0);
-	cvDestroyAllWindows();
-//	cvReleaseImage(&cvImgIntensity);
-//	cvReleaseImage(&cvImgSobel);
-}
-
 //converts raw image into intensity values
-IplImage* cvGenerateIntensityImage(IplImage* raw)
+void cvGenerateIntensityImage(IplImage* cvImgRaw,CvMat* cvMatIntensity)
 {
-	IplImage* intensityImage = cvCreateImage(cvGetSize(raw),IPL_DEPTH_8U,1);
-
 	//generate intensity image
-	for (int y=0; y<raw->height; y++)
-		for (int x=0; x<raw->width; x++)
+	for (int y=0; y<cvImgRaw->height; y++)
+		for (int x=0; x<cvImgRaw->width; x++)
 		{
-			CvScalar colourValue = cvGet2D(raw,y,x);
-			CvScalar colourSelect;
-			colourSelect.val[0] = (colourValue.val[0]+colourValue.val[1]+colourValue.val[2])/3;
-			cvSet2D(intensityImage,y,x,colourSelect);
+			CvScalar colourValue = cvGet2D(cvImgRaw,y,x);
+			cvmSet(cvMatIntensity,y,x,(colourValue.val[0]+colourValue.val[1]+colourValue.val[2])/3);
 		}
-
-	return intensityImage;
 }
 
-//applies Sobel Operator
-IplImage* cvGenerateSobelImage(IplImage* intensityImage)
+void cvGenerateSobelImage(CvMat* cvMatIntensity,CvMat* cvMatSobel)
 {
-	IplImage* sobelImg = cvCreateImage(cvGetSize(intensityImage),IPL_DEPTH_8U, 1);
-
-	//matrix representation of Sobel image. to ensure negative values are not stored as 0
-	CvMat*		sobelMat = cvCreateMat(intensityImage->height,intensityImage->width,CV_64FC1);
-
+	cl_uint Gx;
+	cl_uint Gy;
 
 	//generate sobel image
-	for (int y=0; y<intensityImage->height; y++)
-		for (int x=0; x<intensityImage->width; x++)
+	for (int y=1; y<cvMatIntensity->height-1; y++)
+		for (int x=1; x<cvMatIntensity->width-1; x++)
 		{
-			cl_uint Gx;
-			cl_uint Gy;
-			cl_uint G;
 
-			if ((y==0) || (y==intensityImage->height-1) || (x==0) || (x==intensityImage->width-1))
-			{
-				G = cvGet2D(intensityImage,y,x).val[0];
-			}
-			else
-			{
-				Gx =	cvGet2D(intensityImage,y-1,x-1).val[0] *	cvSobelOpX[0][0] +
-						cvGet2D(intensityImage,y-1,x).val[0] *		cvSobelOpX[0][1] +
-						cvGet2D(intensityImage,y-1,x+1).val[0] *	cvSobelOpX[0][2] +
+			Gx =	cvmGet(cvMatIntensity,y-1,x-1) *	cvSobelOpX[0][0] +
+					cvmGet(cvMatIntensity,y-1,x) *		cvSobelOpX[0][1] +
+					cvmGet(cvMatIntensity,y-1,x+1) *	cvSobelOpX[0][2] +
 
-						cvGet2D(intensityImage,y,x-1).val[0] *		cvSobelOpX[1][0] +
-						cvGet2D(intensityImage,y,x).val[0] *		cvSobelOpX[1][1] +
-						cvGet2D(intensityImage,y,x+1).val[0] *		cvSobelOpX[1][2] +
+					cvmGet(cvMatIntensity,y,x-1) *		cvSobelOpX[1][0] +
+					cvmGet(cvMatIntensity,y,x) *		cvSobelOpX[1][1] +
+					cvmGet(cvMatIntensity,y,x+1) *		cvSobelOpX[1][2] +
 
-						cvGet2D(intensityImage,y+1,x-1).val[0] *	cvSobelOpX[2][0] +
-						cvGet2D(intensityImage,y+1,x).val[0] *		cvSobelOpX[2][1] +
-						cvGet2D(intensityImage,y+1,x+1).val[0] *	cvSobelOpX[2][2];
-				Gx =	abs(Gx);
+					cvmGet(cvMatIntensity,y+1,x-1) *	cvSobelOpX[2][0] +
+					cvmGet(cvMatIntensity,y+1,x) *		cvSobelOpX[2][1] +
+					cvmGet(cvMatIntensity,y+1,x+1) *	cvSobelOpX[2][2];
+			Gx =	abs(Gx);
 
-				Gy =	cvGet2D(intensityImage,y-1,x-1).val[0] *	cvSobelOpY[0][0] +
-						cvGet2D(intensityImage,y-1,x).val[0] *		cvSobelOpY[0][1] +
-						cvGet2D(intensityImage,y-1,x+1).val[0] *	cvSobelOpY[0][2] +
+			Gy =	cvmGet(cvMatIntensity,y-1,x-1) *	cvSobelOpY[0][0] +
+					cvmGet(cvMatIntensity,y-1,x) *		cvSobelOpY[0][1] +
+					cvmGet(cvMatIntensity,y-1,x+1) *	cvSobelOpY[0][2] +
 
-						cvGet2D(intensityImage,y,x-1).val[0] *		cvSobelOpY[1][0] +
-						cvGet2D(intensityImage,y,x).val[0] *		cvSobelOpY[1][1] +
-						cvGet2D(intensityImage,y,x+1).val[0] *		cvSobelOpY[1][2] +
+					cvmGet(cvMatIntensity,y,x-1) *		cvSobelOpY[1][0] +
+					cvmGet(cvMatIntensity,y,x) *		cvSobelOpY[1][1] +
+					cvmGet(cvMatIntensity,y,x+1) *		cvSobelOpY[1][2] +
 
-						cvGet2D(intensityImage,y+1,x-1).val[0] *	cvSobelOpY[2][0] +
-						cvGet2D(intensityImage,y+1,x).val[0] *		cvSobelOpY[2][1] +
-						cvGet2D(intensityImage,y+1,x+1).val[0] *	cvSobelOpY[2][2];
-				Gy =	abs(Gy);
+					cvmGet(cvMatIntensity,y+1,x-1) *	cvSobelOpY[2][0] +
+					cvmGet(cvMatIntensity,y+1,x) *		cvSobelOpY[2][1] +
+					cvmGet(cvMatIntensity,y+1,x+1) *	cvSobelOpY[2][2];
+			Gy =	abs(Gy);
 
-				G = Gx + Gy;
-			}
-
-			CvScalar colourSelect;
-			colourSelect.val[0] = G;
-			cvmSet(sobelMat,y,x,G);
-			cvSet2D(sobelImg,y,x,colourSelect);
+			cvmSet(cvMatSobel,y,x,Gx + Gy);
 		}
-
-	return sobelImg;
 }
 
 /////////////////////////////////////////////////////////////////
 // Parallel (OpenCL) Methods
 /////////////////////////////////////////////////////////////////
-
-//todo: complete this
-//cl_mem clDoCreateImage(
-//     char* filename,
-//     cl_context context)
-//{
-//	//todo: temp test code
-//	IplImage* tempRaw = cvLoadImage(filename, 1);
-//	size_t width = (size_t)(tempRaw->width);
-//	size_t height = (size_t)(tempRaw->height);
-//	//todo: maybe let OpenCL deal with this (it will be width*bytes-per-pixel
-//	size_t rowpitch = 0; //width*4;
-//
-//	void* image = fopen(filename,"rb");
-//	if (image != NULL) {
-//		std::cout<<"image loaded successfully: " << filename << "\n";
-//	} else {
-//		std::cout<<"image could not be loaded: " << filename << "\n";
-//	}
-//
-//
-//  // set the image format properties and option flags
-//     cl_image_format format;
-//     format.image_channel_order = CL_RGBA;
-//     format.image_channel_data_type = CL_UNORM_INT8;
-//     //format.image_channel_data_type = CL_UNSIGNED_INT8;
-//
-//     cl_mem_flags flags;
-////     flags = CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR;
-//     flags = CL_MEM_READ_ONLY;
-//
-//     cl_int error = CL_SUCCESS;
-//
-//	 std::cout<<"BEFORE\n";
-//
-//     cl_mem myClImage = clCreateImage2D(
-//           context,         	// a valid OpenCL context
-//           flags,             	// option flags                  [1]
-//           &format,           	// image format properties       [2]
-//           width,	    		// width of the image in pixels
-//           height,  		 	// height of the image in pixels
-//           rowpitch, 			// scan-line pitch in bytes      [3]
-//           image,             	// pointer to the image data
-//           &error             	// on return, the result code
-//	);
-//
-//	 std::cout<<"AFTER\n";
-//
-//     if(image == 0 || error != CL_SUCCESS)
-//     {
-//    	 std::cout<<"Error: Could not create 2D image (clCreateImage2D)\n";
-//     }
-//     return myClImage;
-//}
 
 // Host Initialization: Allocate & init memory on the host. Print input array.
 void clInitializeHost(IplImage* cvRawImg)
@@ -349,7 +173,6 @@ void clInitializeHost(IplImage* cvRawImg)
 	output			= NULL;
 
 	input = cvImageToClArray(cvRawImg);
-//	input = clTestArray(10);
     if(input==NULL)
     {
     	std::cout<<"Error: Failed to allocate host memory. (input)\n";
@@ -438,7 +261,6 @@ void clInitialize(void)
 	// Create an OpenCL command queue
 	/////////////////////////////////////////////////////////////////
     /* The block is to move the declaration of prop closer to its use */
-   	//todo: set this to 0 later maybe
    	cl_command_queue_properties prop = 0;
 
    	if (PROFILE)
@@ -717,9 +539,8 @@ void clInitialize(void)
 // Run OpenCL program
 // -> Bind host variables to kernel arguments
 // -> Run the CL kernel
-void clRunKernels(void)
+double clRunKernels(cl_uint alloc_type, cl_uint kernelCount)
 {
-    int runTimerKey = sampleCommon.createTimer();
     double runTime;
 
     cl_int   status;
@@ -728,7 +549,7 @@ void clRunKernels(void)
     size_t globalThreads[1];
     size_t localThreads[1];
     
-    globalThreads[0] = KERNEL_COUNT;
+    globalThreads[0] = kernelCount;
     localThreads[0]  = 1;
 
     //////////////////////////////////////////
@@ -744,7 +565,7 @@ void clRunKernels(void)
     if(status != CL_SUCCESS) 
 	{ 
 		std::cout<<"Error: Setting kernel argument. (input)\n";
-		return;
+		return -1;
 	}
 
     /* the intermediate array to the kernel */
@@ -756,7 +577,7 @@ void clRunKernels(void)
     if(status != CL_SUCCESS)
 	{
 		std::cout<<"Error: Setting kernel argument. (intermediate)\n";
-		return;
+		return -1;
 	}
 
     /* the output array to the kernel */
@@ -768,7 +589,7 @@ void clRunKernels(void)
     if(status != CL_SUCCESS) 
 	{ 
 		std::cout<<"Error: Setting kernel argument. (output)\n";
-		return;
+		return -1;
 	}
 
     status = clSetKernelArg(
@@ -779,7 +600,7 @@ void clRunKernels(void)
     if(status != CL_SUCCESS)
 	{
 		std::cout<<"Error: Setting kernel argument. (sobelx)\n";
-		return;
+		return -1;
 	}
 
     status = clSetKernelArg(
@@ -790,31 +611,32 @@ void clRunKernels(void)
     if(status != CL_SUCCESS)
 	{
 		std::cout<<"Error: Setting kernel argument. (sobely)\n";
-		return;
-	}
-
-    status = clSetKernelArg(
-                    kernel,
-                    5,
-                    sizeof(cl_uint),
-                    (void *)&KERNEL_COUNT);
-    if(status != CL_SUCCESS)
-	{
-		std::cout<<"Error: Setting kernel argument. (kernelCount)\n";
-		return;
+		return -1;
 	}
 
 	cl_uint2 inputOutputDim = {width, height};
     status = clSetKernelArg(
                     kernel,
-                    6,
+                    5,
                     sizeof(cl_uint2),
                     (void *)&inputOutputDim );
     if(status != CL_SUCCESS)
 	{
 		std::cout<<"Error: Setting kernel argument. (inputOutputDimensions)\n";
-		return;
+		return -1;
 	}
+
+    status = clSetKernelArg(
+                    kernel,
+                    6,
+                    sizeof(cl_uint),
+                    (void *)&alloc_type );
+    if(status != CL_SUCCESS)
+	{
+		std::cout<<"Error: Setting kernel argument. (alloc_type)\n";
+		return -1;
+	}
+
     sampleCommon.resetTimer(runTimerKey);
     sampleCommon.startTimer(runTimerKey);
 
@@ -834,7 +656,7 @@ void clRunKernels(void)
     if(status != CL_SUCCESS) 
 	{ 
 		std::cout<<"Error: Enqueueing kernel onto command queue. (clEnqueueNDRangeKernel)\n";
-		return;
+		return -1;
 	}
 
     //////////////////////////////////////////
@@ -844,12 +666,11 @@ void clRunKernels(void)
     if(status != CL_SUCCESS) 
 	{ 
 		std::cout<<"Error: Waiting for kernel run to finish. (clWaitForEvents 0)\n";
-		return;
+		return -1;
 	}
 
     sampleCommon.stopTimer(runTimerKey);
     runTime = (double)(sampleCommon.readTimer(runTimerKey));
-    printf("\nRun Time: %f\n", runTime);
 
     if (PROFILE)
     {
@@ -865,7 +686,7 @@ void clRunKernels(void)
         if(status != CL_SUCCESS)
     	{
     		std::cout<<"Error: clGetEventProfilingInfo failed (start)\n";
-    		return;
+    		return -1;
     	}
         status = clGetEventProfilingInfo(
                 events[0],
@@ -876,7 +697,7 @@ void clRunKernels(void)
         if(status != CL_SUCCESS)
     	{
     		std::cout<<"Error: clGetEventProfilingInfo failed (end)\n";
-    		return;
+    		return -1;
     	}
 
         /* Compute total time (also convert from nanoseconds to seconds) */
@@ -912,12 +733,13 @@ void clRunKernels(void)
     if(status != CL_SUCCESS) 
 	{ 
 		std::cout<<"Error: Waiting for read buffer call to finish. (clWaitForEvents)\n";
-		return;
+		return -1;
 	}
     
     clReleaseEvent(events[1]);
-}
 
+    return runTime;
+}
 
 // Release OpenCL resources (Context, Memory etc.)
 void clCleanup(void)
@@ -942,12 +764,12 @@ void clCleanup(void)
 		std::cout<<"Error: In clReleaseMemObject (inputBuffer)\n";
 		return; 
 	}
-//    status = clReleaseMemObject(intermediateBuffer);
-//    if(status != CL_SUCCESS)
-//	{
-//		std::cout<<"Error: In clReleaseMemObject (intermediateBuffer)\n";
-//		return;
-//	}
+    status = clReleaseMemObject(intermediateBuffer);
+    if(status != CL_SUCCESS)
+	{
+		std::cout<<"Error: In clReleaseMemObject (intermediateBuffer)\n";
+		return;
+	}
 	status = clReleaseMemObject(outputBuffer);
     if(status != CL_SUCCESS)
 	{
@@ -989,11 +811,11 @@ void clCleanupHost(void)
         free(input);
         input = NULL;
     }
-//    if(intermediate != NULL)
-//    {
-//        free(input);
-//        input = NULL;
-//    }
+    if(intermediate != NULL)
+    {
+        free(input);
+        input = NULL;
+    }
 	if(output != NULL)
 	{
 		free(output);
@@ -1187,42 +1009,109 @@ void clPrintInfo() {
 	}
 }
 
+void testEdgeOutput(cl_uint  *out)
+{
+	for (int y=1; y<height-1; y++)
+		for (int x=1; x<width-1; x++)
+		{
+			int index = (y * width) + x;
+			if (out[index] != 1) printf("index[%d]=%d\n",index,out[index]);
+		}
+}
+
+char* allocTypeToStr(int alloc_type)
+{
+	char* result = "UNKNOWN";
+
+    switch (alloc_type)
+    {
+    case ALLOC_TILE:
+		 result = "ALLOC_TILE";
+		 break;
+    case ALLOC_HORZ:
+		 result = "ALLOC_HORZ";
+		 break;
+    case ALLOC_VERT:
+		 result = "ALLOC_VERT";
+		 break;
+    }
+
+    return result;
+}
+
 int main(int argc, char * argv[])
 {
+	//	clPrintInfo();
+
 	//////////////////////////////
     // Init
     //////////////////////////////
-	IplImage* cvRaw = cvLoadImage("raw.bmp", 1);
+	runTimerKey = sampleCommon.createTimer();
+	IplImage* cvImgRaw = cvLoadImage("raw.bmp", 1);
 
-	width = cvRaw->width;
-	height = cvRaw->height;
-//	width = 10;
-//	height = 10;
-
-//	clPrintInfo();
+	width = cvImgRaw->width;
+	height = cvImgRaw->height;
 
 	//////////////////////////////
     // Serial (OpenCV)
     //////////////////////////////
-//    cvDoFindEdges(cvRaw);
+//	CvMat*		cvMatIntensity = cvCreateMat(cvImgRaw->height,cvImgRaw->width,CV_64FC1);
+//	CvMat*		cvMatSobel = cvCreateMat(cvImgRaw->height,cvImgRaw->width,CV_64FC1);
+//	IplImage*	cvImgSobel = cvCreateImage(cvGetSize(cvImgRaw),IPL_DEPTH_8U, 1);
+//
+//    sampleCommon.resetTimer(runTimerKey);
+//    sampleCommon.startTimer(runTimerKey);
+//
+//    cvGenerateIntensityImage(cvImgRaw,cvMatIntensity);
+//	cvGenerateSobelImage(cvMatIntensity,cvMatSobel);
+//
+//    sampleCommon.stopTimer(runTimerKey);
+//    double cvRunTime = (double)(sampleCommon.readTimer(runTimerKey));
+//    printf("\nOpenCV Runtime:\t%f\n\n", cvRunTime);
+//
+////    cvMatToCvImage(cvImgSobel,cvMatSobel);
+////    cvDisplay(cvImgSobel,"Sobel",0,0);
+////    cvSaveImage("resultCV.bmp",(CvArr*)cvImgSobel);
+//
+//	cvReleaseMat(&cvMatIntensity);
+//	cvReleaseMat(&cvMatSobel);
+//	cvReleaseImage(&cvImgSobel);
 
 
-    //////////////////////////////
+	//////////////////////////////
     // Parallel (OpenCL)
     //////////////////////////////
-	clInitializeHost(cvRaw); 	// Initialize Host application
-    clInitialize(); 			// Initialize OpenCL resources
+    int repetitions = 50;
+    int maxKernels  = 1024;
 
-    clRunKernels();				// Run the CL program
-    clRunKernels();				// Run the CL program
-    clRunKernels();				// Run the CL program
+	for (int alloc_type = ALLOC_TILE; alloc_type <= ALLOC_VERT; alloc_type++)
+	{
+	    printf("\n***********************\n");
+		printf("Allocation:\t%s\n", allocTypeToStr(alloc_type));
+	    printf("***********************\n");
 
-    IplImage* clSobel = clArrayToCvImage(output,width,height);
-//    cvDisplay(clSobel,"clSobel",0,0);
-	cvSaveImage("test.bmp",(CvArr*)clSobel);
+		for (int kernelCount = 1; kernelCount <= maxKernels; kernelCount = kernelCount * 2)
+		{
+			printf("Threads[%d]:\t", kernelCount);
 
-    clCleanup();				// Releases OpenCL resources
-    clCleanupHost();			// Release host resources
+			clInitializeHost(cvImgRaw); // Initialize Host application
+			clInitialize(); // Initialize OpenCL resources
+
+			double runTimeTotal = 0;
+			for (int run = 0; run < repetitions; run++) {
+				double runTime = clRunKernels(alloc_type, kernelCount); // Run the CL program
+//				printf("Run[%d]: %f\n", run, runTime);
+				runTimeTotal += runTime;
+			}
+			printf("Average Runtime:\t%f\n", runTimeTotal/(double)repetitions);
+
+			clCleanup(); // Releases OpenCL resources
+			clCleanupHost(); // Release host resources
+		}
+	}
+
+//    IplImage* clSobel = clArrayToCvImage(output,width,height);
+//    cvSaveImage("resultCL.bmp",(CvArr*)clSobel);
 
     return 0;
 }
