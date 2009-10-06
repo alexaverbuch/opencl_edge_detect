@@ -1,0 +1,6 @@
+raw.bmp must be placed in "ati-stream-sdk-v2.0-beta3-lnx32/samples/opencl/bin/debug/x86/"
+That is where the binary is stored. Run binary from here.
+
+AND
+
+Put folder with all code named "EdgeDetect" into "ati-stream-sdk-v2.0-beta3-lnx32/samples/opencl/cl/app/". It relies on other make files besides its own one, so this is NECESSARY.
