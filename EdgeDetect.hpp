@@ -41,6 +41,7 @@ cl_double    totalKernelTime;   /**< Time for kernel execution */
 cl_double    totalProgramTime;  /**< Time for program execution */
 cl_double    referenceKernelTime;/**< Time for reference implementation */
 
+
 // problem size for 1D algorithm and width of problem size for 2D algorithm
 cl_uint width;
 cl_uint height;
