@@ -1064,7 +1064,7 @@ int main(int argc, char * argv[])
     //////////////////////////////
 	runTimerKey = sampleCommon.createTimer();
 	IplImage* cvImgRaw = cvLoadImage("raw.bmp", 1);
-    int repetitions = 100;
+    int repetitions = 5;
     int maxKernels  = 1024;
 
 	width = cvImgRaw->width;
@@ -1077,16 +1077,16 @@ int main(int argc, char * argv[])
 	//////////////////////////////
     // Serial (OpenCV)
     //////////////////////////////
-    sampleCommon.resetTimer(runTimerKey);
-    sampleCommon.startTimer(runTimerKey);
-
-    cvGenerateIntensityImage(input,intermediate, height, width);
-	cvGenerateSobelImage(intermediate,output, height, width);
-
-    sampleCommon.stopTimer(runTimerKey);
 
     double cvRunTime = 0;
 	for (int run = 0; run < repetitions; run++) {
+	    sampleCommon.resetTimer(runTimerKey);
+	    sampleCommon.startTimer(runTimerKey);
+
+	    cvGenerateIntensityImage(input,intermediate, height, width);
+		cvGenerateSobelImage(intermediate,output, height, width);
+
+	    sampleCommon.stopTimer(runTimerKey);
 	    cvRunTime += (double)(sampleCommon.readTimer(runTimerKey));
 	}
     printf("\nOpenCV Runtime:\t%f\n\n", cvRunTime/(double)repetitions);
