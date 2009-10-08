@@ -1064,8 +1064,8 @@ int main(int argc, char * argv[])
     //////////////////////////////
 	runTimerKey = sampleCommon.createTimer();
 	IplImage* cvImgRaw = cvLoadImage("raw.bmp", 1);
-    int repetitions = 10;
-    int maxKernels  = 4;
+    int repetitions = 100;
+    int maxKernels  = 1024;
 
 	width = cvImgRaw->width;
 	height = cvImgRaw->height;
