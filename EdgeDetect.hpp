@@ -90,8 +90,8 @@ IplImage* clArrayToCvImage(cl_uint* output, int width, int height);
 void cvMatToCvImage(IplImage* cvImg,CvMat* cvMat);
 
 // OpenCV related funs
-void cvGenerateIntensityImage(IplImage* cvImgRaw,CvMat* cvMatIntensity);
-void cvGenerateSobelImage(CvMat* cvMatIntensity,CvMat* cvMatSobel);
+void cvGenerateIntensityImage(my_uint4* clArrRaw,cl_uint* clArrIntensity, int height, int width);
+void cvGenerateSobelImage(cl_uint* clArrIntensity,cl_uint* clArrSobel, int height, int width);
 
 // OpenCL related funs
 void clInitialize(void);
