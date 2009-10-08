@@ -41,7 +41,6 @@ cl_double    totalKernelTime;   /**< Time for kernel execution */
 cl_double    totalProgramTime;  /**< Time for program execution */
 cl_double    referenceKernelTime;/**< Time for reference implementation */
 
-
 // problem size for 1D algorithm and width of problem size for 2D algorithm
 cl_uint width;
 cl_uint height;
@@ -57,12 +56,6 @@ cl_uint clSobelOpX[9] = {	-1, 0, 1,
 cl_uint clSobelOpY[9] = { 	1, 2, 1,
 							0, 0, 0,
 							-1,-2,-1};
-int cvSobelOpX[3][3] = {{-1, 0, 1},
-						{-2, 0, 2},
-						{-1, 0, 1}};
-int cvSobelOpY[3][3] = {{ 1, 2, 1},
-						{ 0, 0, 0},
-						{-1,-2,-1}};
 
 // The memory buffer that is used as input/output for OpenCL kernel
 cl_mem   inputBuffer;

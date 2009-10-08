@@ -116,7 +116,6 @@ __kernel void edgeDetectKernel(	__global  	uint4 * input,
 	myWork.width 		= inputOutputDim.x;
 	myWork.height		= inputOutputDim.y;
 
-
 	 switch (alloc_type)
 	 {
 	 case 0:	//TILE

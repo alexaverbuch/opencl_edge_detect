@@ -1112,17 +1112,17 @@ int main(int argc, char * argv[])
 			printf("Threads[%d]:\t", kernelCount);
 
 			clInitializeHost(cvImgRaw); // Initialize Host application
-//			clInitialize(); // Initialize OpenCL resources
+			clInitialize(); // Initialize OpenCL resources
 
 			double clRunTime = 0;
 			for (int run = 0; run < repetitions; run++) {
-				clInitialize(); // Initialize OpenCL resources
+//				clInitialize(); // Initialize OpenCL resources
 				clRunTime += clRunKernels(alloc_type, kernelCount); // Run the CL program
-				clCleanup(); // Releases OpenCL resources
+//				clCleanup(); // Releases OpenCL resources
 			}
 			printf("Average Runtime:\t%f\n", clRunTime/(double)repetitions);
 
-//			clCleanup(); // Releases OpenCL resources
+			clCleanup(); // Releases OpenCL resources
 			clCleanupHost(); // Release host resources
 		}
 	}
