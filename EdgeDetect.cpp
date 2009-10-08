@@ -1070,6 +1070,7 @@ int main(int argc, char * argv[])
 	width = cvImgRaw->width;
 	height = cvImgRaw->height;
 
+	// Initialize both CV and CL code
 	clInitializeHost(cvImgRaw);
 
 
