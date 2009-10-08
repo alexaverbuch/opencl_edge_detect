@@ -1090,9 +1090,9 @@ int main(int argc, char * argv[])
 	}
     printf("\nOpenCV Runtime:\t%f\n\n", cvRunTime/(double)repetitions);
 
-    IplImage*	cvImgSobel = clArrayToCvImage(output,width,height);
-	cvSaveImage("resultCV.bmp",(CvArr*)cvImgSobel);
-	cvReleaseImage(&cvImgSobel);
+//    IplImage*	cvImgSobel = clArrayToCvImage(output,width,height);
+//	cvSaveImage("resultCV.bmp",(CvArr*)cvImgSobel);
+//	cvReleaseImage(&cvImgSobel);
 
 
 
@@ -1128,9 +1128,9 @@ int main(int argc, char * argv[])
 
 	cvReleaseImage(&cvImgRaw);
 
-    IplImage* clSobel = clArrayToCvImage(output,width,height);
-    cvSaveImage("resultCL.bmp",(CvArr*)clSobel);
-	cvReleaseImage(&clSobel);
+//    IplImage* clSobel = clArrayToCvImage(output,width,height);
+//    cvSaveImage("resultCL.bmp",(CvArr*)clSobel);
+//	cvReleaseImage(&clSobel);
 
     return 0;
 }
